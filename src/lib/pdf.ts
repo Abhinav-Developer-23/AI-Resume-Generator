@@ -21,12 +21,27 @@ export async function exportResumeToPdf(
     throw new Error(`Resume element #${elementId} not found.`);
   }
 
-  // Create high-resolution canvas
+  // Create ultra-high-resolution canvas at 100% native scale (ignoring zoom preview transform)
   const canvas = await html2canvas(element, {
-    scale: 2.5, // 2.5x retina resolution for ultra-sharp text
+    scale: 3, // 3x ultra-sharp resolution
     useCORS: true,
     logging: false,
     backgroundColor: "#ffffff",
+    onclone: (clonedDoc) => {
+      const clonedEl = clonedDoc.getElementById(elementId);
+      if (clonedEl) {
+        // Reset any parent scale/zoom transforms in the cloned DOM
+        let parent = clonedEl.parentElement;
+        while (parent && parent !== clonedDoc.body) {
+          if (parent.style.transform) {
+            parent.style.transform = "none";
+          }
+          parent = parent.parentElement;
+        }
+        clonedEl.style.transform = "none";
+        clonedEl.style.boxShadow = "none";
+      }
+    },
   });
 
   const pdf = new jsPDF({
