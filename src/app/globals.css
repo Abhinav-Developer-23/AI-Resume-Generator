@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0d0e12;
+  --foreground: #ededed;
+}
+
+body {
+  color: var(--foreground);
+  background: radial-gradient(circle at 50% 0%, #1a1c26 0%, #0d0e12 70%);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Print Rules for Perfect A4 Multi-Page Vector PDF Generation */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide everything except the resume document during print */
+  header,
+  nav,
+  button,
+  .no-print,
+  #resume-editor-container,
+  .mac-window-controls {
+    display: none !important;
+  }
+
+  #resume-preview-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    width: 100% !important;
+    position: static !important;
+  }
+
+  #resume-document {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+  }
+
+  /* Prevent awkward page breaks inside individual work experiences or projects */
+  section,
+  .resume-section,
+  .resume-item {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+}
