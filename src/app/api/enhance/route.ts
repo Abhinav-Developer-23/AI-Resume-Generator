@@ -8,16 +8,20 @@ export async function GET() {
   const groqKeys = Object.keys(process.env).filter((k) =>
     k.toLowerCase().includes("groq")
   );
-  const hasKey = groqKeys.some((k) => {
+  const variables = groqKeys.map((k) => {
     const v = (process.env[k] || "").trim();
-    return v.startsWith("gsk_") || v.length > 20;
+    return {
+      name: k,
+      length: v.length,
+      prefix: v.slice(0, 4),
+      suffix: v.slice(-3),
+      isPlaceholder: v.includes("your_groq_api_key"),
+    };
   });
 
   return NextResponse.json({
     status: "ok",
-    hasGroqKey: hasKey,
-    groqEnvVariableNames: groqKeys,
-    totalEnvVariables: Object.keys(process.env).length,
+    variables,
   });
 }
 
