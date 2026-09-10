@@ -2,25 +2,87 @@ import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const groqKeys = Object.keys(process.env).filter((k) =>
+    k.toLowerCase().includes("groq")
+  );
+  const hasKey = groqKeys.some((k) => {
+    const v = (process.env[k] || "").trim();
+    return v.startsWith("gsk_") || v.length > 20;
+  });
+
+  return NextResponse.json({
+    status: "ok",
+    hasGroqKey: hasKey,
+    groqEnvVariableNames: groqKeys,
+    totalEnvVariables: Object.keys(process.env).length,
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const rawKey =
-      process.env.GROQ_API_KEY ||
-      process.env.groq_api_key ||
-      process.env.NEXT_PUBLIC_GROQ_API_KEY;
-    const apiKey = rawKey?.trim();
-    const customModel = (process.env.GROQ_MODEL || process.env.groq_model || "").trim();
+    // 1. Comprehensive case-insensitive search for any env variable containing "groq"
+    let apiKey = "";
+    let detectedKeyName = "";
+
+    const directKeys = [
+      process.env.GROQ_API_KEY,
+      process.env.groq_api_key,
+      process.env.NEXT_PUBLIC_GROQ_API_KEY,
+      process.env.GROQ_KEY,
+      process.env.GROQ_API,
+    ];
+
+    for (const k of directKeys) {
+      if (k && k.trim().length > 10 && !k.includes("your_groq_api_key")) {
+        apiKey = k.trim().replace(/^["'`]+|["'`]+$/g, "");
+        break;
+      }
+    }
+
+    if (!apiKey) {
+      for (const [name, val] of Object.entries(process.env)) {
+        if (!val) continue;
+        const cleanName = name.trim().toLowerCase();
+        if (cleanName.includes("groq")) {
+          const cleanVal = val.trim().replace(/^["'`]+|["'`]+$/g, "");
+          if (cleanVal.startsWith("gsk_") || cleanVal.length > 25) {
+            apiKey = cleanVal;
+            detectedKeyName = name;
+            break;
+          }
+        }
+      }
+    }
+
+    let customModel = "";
+    for (const [name, val] of Object.entries(process.env)) {
+      if (!val) continue;
+      const cleanName = name.trim().toLowerCase();
+      if (cleanName.includes("groq") && cleanName.includes("model")) {
+        customModel = val.trim().replace(/^["'`]+|["'`]+$/g, "");
+        break;
+      }
+    }
+
     const candidateModels = [
       customModel,
+      process.env.GROQ_MODEL,
       "groq/compound-mini",
       "llama-3.1-8b-instant",
       "openai/gpt-oss-20b",
       "qwen/qwen3.8-27b",
       "qwen/qwen3.6-27b",
     ].filter(Boolean) as string[];
+
     const body = await req.json();
     const { action, text, context } = body;
+
+    const groqKeysInEnv = Object.keys(process.env).filter((k) =>
+      k.toLowerCase().includes("groq")
+    );
 
     if (!text && action !== "generate_summary") {
       return NextResponse.json(
@@ -35,7 +97,11 @@ export async function POST(req: NextRequest) {
           enhanced: mockEnhancement(action, text, context),
           isMock: true,
           notice:
-            "GROQ_API_KEY not detected. If you just added it in Vercel, go to Deployments -> click ⋯ -> 'Redeploy' so Vercel loads the new environment variables.",
+            "GROQ_API_KEY not detected. Check Vercel environment variables for this project.",
+          debug: {
+            groqKeysFound: groqKeysInEnv,
+            totalEnvVars: Object.keys(process.env).length,
+          },
         },
         { status: 200 }
       );
