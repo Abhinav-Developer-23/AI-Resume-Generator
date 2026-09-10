@@ -3,19 +3,22 @@ import Groq from "groq-sdk";
 
 export const runtime = "nodejs";
 
-// Priority list of models to try (lightweight / 8B class models first)
-const CANDIDATE_MODELS = [
-  process.env.GROQ_MODEL,
-  "groq/compound-mini",
-  "llama-3.1-8b-instant",
-  "openai/gpt-oss-20b",
-  "qwen/qwen3.8-27b",
-  "qwen/qwen3.6-27b",
-].filter(Boolean) as string[];
-
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
+    const rawKey =
+      process.env.GROQ_API_KEY ||
+      process.env.groq_api_key ||
+      process.env.NEXT_PUBLIC_GROQ_API_KEY;
+    const apiKey = rawKey?.trim();
+    const customModel = (process.env.GROQ_MODEL || process.env.groq_model || "").trim();
+    const candidateModels = [
+      customModel,
+      "groq/compound-mini",
+      "llama-3.1-8b-instant",
+      "openai/gpt-oss-20b",
+      "qwen/qwen3.8-27b",
+      "qwen/qwen3.6-27b",
+    ].filter(Boolean) as string[];
     const body = await req.json();
     const { action, text, context } = body;
 
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
           enhanced: mockEnhancement(action, text, context),
           isMock: true,
           notice:
-            "No active AI API Key detected in .env.local. A polished sample was generated.",
+            "GROQ_API_KEY not detected. If you just added it in Vercel, go to Deployments -> click ⋯ -> 'Redeploy' so Vercel loads the new environment variables.",
         },
         { status: 200 }
       );
@@ -82,7 +85,7 @@ Focus on core engineering competencies and domain strengths. Return ONLY the sum
     let usedModel = "";
     let lastError: any = null;
 
-    for (const model of CANDIDATE_MODELS) {
+    for (const model of candidateModels) {
       try {
         const completion = await groq.chat.completions.create({
           model,
